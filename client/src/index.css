@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/* ── Design tokens — mismos valores que tokens.js ─────────────────────────
+   En Tailwind v4 el tema se define aquí vía @theme.
+   Los valores vienen de la misma fuente que tokens.js para mantener coherencia.
+   ─────────────────────────────────────────────────────────────────────────── */
+@theme {
+  /* Tipografía */
+  --font-grotesk: "Space Grotesk", sans-serif;
+  --font-inter:   "Inter", sans-serif;
+  --font-mono:    "Roboto Mono", monospace;
+
+  /* Superficies — The Editorial Monolith */
+  --color-bg0: #0e0e0f;
+  --color-bg1: #131315;
+  --color-bg2: #19191b;
+  --color-bg3: #252628;
+
+  /* Aliases semánticos */
+  --color-surface:                   #0e0e0f;
+  --color-surface-container-low:     #131315;
+  --color-surface-container:         #19191b;
+  --color-surface-container-highest: #252628;
+
+  /* Bordes */
+  --color-bdr:       #48484b;
+  --color-bdr-faint: #252628;
+
+  /* Texto */
+  --color-ink-1: #e8e8e9;
+  --color-ink-2: #9a9a9d;
+  --color-ink-3: #757578;
+
+  /* Primary */
+  --color-accent:          #c6c6c7;
+  --color-accent-hover:    #b5b5b6;
+  --color-accent-dim:      #252628;
+  --color-primary:         #c6c6c7;
+  --color-on-primary:      #3f4041;
+  --color-outline:         #757578;
+  --color-outline-variant: #48484b;
+
+  /* Verdicts — colores de badge / borde */
+  --color-ok:   #e2e2e2;
+  --color-warn: #dbe3f0;
+  --color-fail: #fd4e4d;
+  --color-na:   #757578;
+
+  /* Verdicts — fondos de tarjeta */
+  --color-ok-bg:   #1c1c1d;
+  --color-warn-bg: #161a1f;
+  --color-fail-bg: #201313;
+  --color-na-bg:   #131315;
+
+  /* Animaciones */
+  --animate-fade-in:      fadeIn 0.3s ease-out;
+  --animate-slide-up:     slideUp 0.3s ease-out;
+  --animate-claim-appear: claimAppear 0.4s ease-out;
+  --animate-shimmer:      shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes claimAppear {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
+}
+
+/* ── Custom scrollbar ─────────────────────────────── */
+::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: #0e0e1a; }
+::-webkit-scrollbar-thumb  { background: #252545; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #35355a; }
+
+/* ── Base ─────────────────────────────────────────── */
+html, body, #root {
+  height: 100%;
+}
+body {
+  background-color: #0e0e0f;
+  color: #e8e8e9;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Selección ────────────────────────────────────── */
+::selection {
+  background-color: #1a1850;
+  color: #e4e4f0;
+}
+
+/* ── View Transitions ─────────────────────────────── */
+::view-transition-old(root) {
+  animation: fade-out 150ms ease-in;
+}
+::view-transition-new(root) {
+  animation: fade-in 150ms ease-out;
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

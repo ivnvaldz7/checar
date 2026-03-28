@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx vite:*)",
+      "Bash(cmd /c \"taskkill /PID 19784 /F 2>&1\")",
+      "Bash(powershell -Command \"Stop-Process -Id 19784 -Force\")",
+      "Bash(npm run:*)",
+      "Bash(ls C:/Users/Usuario/Desktop/check-ar/client/.env*)",
+      "Bash(ls C:/Users/Usuario/Desktop/check-ar/server/.env*)",
+      "Bash(curl:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

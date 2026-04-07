@@ -9,16 +9,21 @@ import { runPipeline } from './pipeline.js'
 const app = express()
 const httpServer = createServer(app)
 
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')
+const configuredOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
+const corsOrigin = configuredOrigins.length === 0 ? true : configuredOrigins
 
 const io = new Server(httpServer, {
   cors: {
-    origin: allowedOrigins,
+    origin: corsOrigin,
     methods: ['GET', 'POST'],
   },
 })
 
-app.use(cors({ origin: allowedOrigins }))
+app.use(cors({ origin: corsOrigin }))
 app.use(express.json())
 
 // Rutas

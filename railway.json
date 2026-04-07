@@ -1,7 +1,7 @@
 {
   "build": { "builder": "NIXPACKS" },
   "deploy": {
-    "startCommand": "cd server && npm install && npm start",
+    "startCommand": "npm run start:server",
     "healthcheckPath": "/health",
     "restartPolicyType": "ON_FAILURE"
   }

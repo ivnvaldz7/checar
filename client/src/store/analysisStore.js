@@ -1,80 +1,103 @@
 import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
 // Store global para el estado del análisis en curso.
 // Una sesión vive mientras dura el análisis — no se persiste.
 
-const useAnalysisStore = create((set) => ({
-  sessionId:   null,
-  status:      'idle',   // idle | loading | streaming | error | success
+const INITIAL_STATE = {
+  sessionId: null,
+  status: 'idle',
   articleTitle: '',
-  articleText:  '',
-  textChunks:  [],       // chunks del texto durante streaming
-  claims:      [],       // claims ya verificados
-  error:       null,
+  articleText: '',
+  textChunks: [],
+  claims: [],
+  error: null,
+}
 
-  // ── Acciones ──────────────────────────────────────
+function sortClaimsByIndex(claims) {
+  return [...claims].sort((a, b) => {
+    const aIndex = typeof a.claimIndex === 'number' ? a.claimIndex : Number.MAX_SAFE_INTEGER
+    const bIndex = typeof b.claimIndex === 'number' ? b.claimIndex : Number.MAX_SAFE_INTEGER
+    return aIndex - bIndex
+  })
+}
 
-  setSession: (sessionId) =>
-    set({ sessionId, status: 'loading', error: null }),
+const useAnalysisStore = create(
+  persist(
+    (set) => ({
+      ...INITIAL_STATE,
 
-  addTextChunk: (chunk) =>
-    set((state) => ({
-      status:     'streaming',
-      textChunks: [...state.textChunks, chunk],
-    })),
+      // ── Acciones ──────────────────────────────────────
 
-  addClaim: (claim) =>
-    set((state) => {
-      const claimIndex = typeof claim.claimIndex === 'number'
-        ? claim.claimIndex
-        : state.claims.length
+      setSession: (sessionId) =>
+        set({
+          ...INITIAL_STATE,
+          sessionId,
+          status: 'loading',
+        }),
 
-      const nextClaims = [...state.claims]
-      const existingIndex = nextClaims.findIndex((item) => item.claimIndex === claimIndex)
+      addTextChunk: (chunk) =>
+        set((state) => ({
+          status: 'streaming',
+          textChunks: [...state.textChunks, chunk],
+        })),
 
-      if (existingIndex >= 0) {
-        nextClaims[existingIndex] = claim
-      } else {
-        nextClaims.push(claim)
-      }
+      addClaim: (claim) =>
+        set((state) => {
+          const claimIndex = typeof claim.claimIndex === 'number'
+            ? claim.claimIndex
+            : state.claims.length
 
-      nextClaims.sort((a, b) => {
-        const aIndex = typeof a.claimIndex === 'number' ? a.claimIndex : Number.MAX_SAFE_INTEGER
-        const bIndex = typeof b.claimIndex === 'number' ? b.claimIndex : Number.MAX_SAFE_INTEGER
-        return aIndex - bIndex
-      })
+          const nextClaims = [...state.claims]
+          const existingIndex = nextClaims.findIndex((item) => item.claimIndex === claimIndex)
 
-      return { claims: nextClaims }
+          if (existingIndex >= 0) {
+            nextClaims[existingIndex] = claim
+          } else {
+            nextClaims.push(claim)
+          }
+
+          return { claims: sortClaimsByIndex(nextClaims) }
+        }),
+
+      setComplete: ({ claims, articleTitle, articleText }) =>
+        set({
+          status: 'success',
+          claims: sortClaimsByIndex(claims),
+          articleTitle,
+          articleText,
+        }),
+
+      setError: (message) =>
+        set({
+          status: 'error',
+          error: message,
+        }),
+
+      reset: () => set(INITIAL_STATE),
     }),
-
-  setComplete: ({ claims, articleTitle, articleText }) =>
-    set({
-      status: 'success',
-      claims: [...claims].sort((a, b) => {
-        const aIndex = typeof a.claimIndex === 'number' ? a.claimIndex : Number.MAX_SAFE_INTEGER
-        const bIndex = typeof b.claimIndex === 'number' ? b.claimIndex : Number.MAX_SAFE_INTEGER
-        return aIndex - bIndex
-      }),
-      articleTitle,
-      articleText,
-    }),
-
-  setError: (message) =>
-    set({
-      status: 'error',
-      error:  message,
-    }),
-
-  reset: () =>
-    set({
-      sessionId:    null,
-      status:       'idle',
-      articleTitle: '',
-      articleText:  '',
-      textChunks:   [],
-      claims:       [],
-      error:        null,
-    }),
-}))
+    {
+      name: 'checar-analysis-session',
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (state) => (
+        state.status === 'success'
+          ? {
+              sessionId: state.sessionId,
+              status: state.status,
+              articleTitle: state.articleTitle,
+              articleText: state.articleText,
+              claims: state.claims,
+            }
+          : {
+              sessionId: null,
+              status: 'idle',
+              articleTitle: '',
+              articleText: '',
+              claims: [],
+            }
+      ),
+    },
+  ),
+)
 
 export default useAnalysisStore

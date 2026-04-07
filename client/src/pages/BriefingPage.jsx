@@ -4,87 +4,6 @@ import ClaimCard from '../components/ClaimCard'
 import useAnalysisStore from '../store/analysisStore'
 import { claimAccents, verdicts, verdictLabels } from '../tokens'
 
-// ── Mock data de fallback ──────────────────────────────────────────────────
-// Se usa cuando BriefingPage se abre directamente (sin pasar por AnalysisPage).
-// Misma forma que analysis_complete (ver CONTEXT.md).
-
-const MOCK_CLAIMS = [
-  {
-    claim: 'La inflación interanual acumuló un 211% en 2023',
-    verdict: 'acertado',
-    explanation:
-      'Según el INDEC, el IPC registró una variación de 211,4% en 2023, confirmando el dato citado.',
-    sources: [
-      'https://www.indec.gob.ar/uploads/informesdeprensa/ipc_01_24.pdf',
-      'https://chequeado.com/el-explicador/inflacion-2023/',
-    ],
-    historicalData: [
-      { month: 'Ene', value: 6.0 },
-      { month: 'Feb', value: 6.6 },
-      { month: 'Mar', value: 7.7 },
-      { month: 'Abr', value: 8.4 },
-      { month: 'May', value: 7.8 },
-      { month: 'Jun', value: 6.0 },
-      { month: 'Jul', value: 6.3 },
-      { month: 'Ago', value: 12.4 },
-      { month: 'Sep', value: 12.7 },
-      { month: 'Oct', value: 8.3 },
-      { month: 'Nov', value: 12.8 },
-      { month: 'Dic', value: 25.5 },
-    ],
-  },
-  {
-    claim: 'El déficit fiscal fue eliminado completamente en el primer trimestre de 2024',
-    verdict: 'dudoso',
-    explanation:
-      'El Ministerio de Economía informó superávit financiero en enero-marzo 2024, aunque economistas señalan que el resultado excluye pagos diferidos y transferencias a provincias.',
-    sources: [
-      'https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-35-46',
-      'https://chequeado.com/el-explicador/deficit-fiscal-2024/',
-    ],
-    historicalData: null,
-  },
-  {
-    claim: 'El desempleo se ubicó en 5,7% en el tercer trimestre de 2023',
-    verdict: 'acertado',
-    explanation:
-      'La Encuesta Permanente de Hogares del INDEC para el tercer trimestre de 2023 registró una tasa de desocupación de 5,7%.',
-    sources: [
-      'https://www.indec.gob.ar/uploads/informesdeprensa/EPH_cont_3trim23_08_23.pdf',
-    ],
-    historicalData: [
-      { month: 'Q1 22', value: 7.0 },
-      { month: 'Q2 22', value: 6.9 },
-      { month: 'Q3 22', value: 7.1 },
-      { month: 'Q4 22', value: 6.3 },
-      { month: 'Q1 23', value: 6.9 },
-      { month: 'Q2 23', value: 6.2 },
-      { month: 'Q3 23', value: 5.7 },
-    ],
-  },
-  {
-    claim: 'El gobierno transfirió fondos coparticipables por encima de lo estipulado legalmente',
-    verdict: 'falso',
-    explanation:
-      'Según el Boletín Oficial y la OPC, las transferencias estuvieron por debajo de los índices de la Ley de Coparticipación Federal durante el período analizado.',
-    sources: [
-      'https://www.boletinoficial.gob.ar',
-      'https://www.opc.gob.ar/publicaciones/',
-    ],
-    historicalData: null,
-  },
-  {
-    claim: 'Las reservas del Banco Central superan los USD 30.000 millones',
-    verdict: 'sin_datos',
-    explanation:
-      'No fue posible verificar este dato. Las reservas brutas del BCRA fluctúan diariamente y la información disponible no corresponde al período citado.',
-    sources: [],
-    historicalData: null,
-  },
-]
-
-const MOCK_TITLE = 'Gobierno confirma superávit primario y apunta a reservas del BCRA'
-
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function buildCopyText(claims, title) {
@@ -141,8 +60,8 @@ export default function BriefingPage() {
   const storeTitle  = useAnalysisStore((s) => s.articleTitle)
   const reset       = useAnalysisStore((s) => s.reset)
 
-  const claims = storeClaims.length > 0 ? storeClaims : MOCK_CLAIMS
-  const title  = storeTitle  || MOCK_TITLE
+  const claims = storeClaims
+  const title  = storeTitle || 'Texto pegado'
 
   const counts = VERDICT_COUNTS(claims)
   const claimLegend = claims.map((claim, index) => {
@@ -173,6 +92,51 @@ export default function BriefingPage() {
     } catch {
       // Si compartir falla o se cancela, evitamos romper la UI.
     }
+  }
+
+  if (claims.length === 0) {
+    return (
+      <div className="min-h-screen bg-surface flex flex-col font-inter">
+        <header className="h-14 bg-surface-container-low flex items-center justify-between px-5 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <span className="material-icons text-primary text-[20px]">fact_check</span>
+            <span className="font-grotesk font-bold text-[18px] tracking-tight text-ink-1">
+              Chec<span className="text-primary">AR</span>
+            </span>
+          </div>
+          <button
+            onClick={() => { reset(); navigate('/') }}
+            className="flex items-center gap-1.5 bg-surface-container hover:bg-surface-container-highest px-3 py-2 font-mono text-[10px] text-ink-1 rounded-[0.125rem] tracking-[0.05em] transition-colors"
+          >
+            <span className="material-icons text-[13px] text-primary">arrow_back</span>
+            VOLVER
+          </button>
+        </header>
+
+        <main className="flex-1 flex items-center justify-center px-5 py-10">
+          <div className="max-w-lg w-full border border-bdr-faint bg-surface-container-low rounded-[0.2rem] p-6">
+            <p className="font-mono text-[9px] text-outline tracking-[0.2em] mb-3">
+              BRIEFING NO DISPONIBLE
+            </p>
+            <h1 className="font-grotesk font-bold text-[26px] text-ink-1 leading-tight mb-3">
+              No hay un resumen verificado cargado en esta sesión.
+            </h1>
+            <p className="font-inter text-[14px] text-ink-2 leading-relaxed mb-6">
+              El briefing ahora se guarda solo cuando el análisis termina bien.
+              Si entraste directo a esta ruta o recargaste antes de completar el chequeo,
+              hace falta iniciar una nueva consulta.
+            </p>
+            <button
+              onClick={() => { reset(); navigate('/') }}
+              className="inline-flex items-center gap-2 bg-primary text-on-primary font-grotesk font-semibold text-sm px-4 py-3 rounded-[0.125rem] hover:opacity-90 transition-opacity"
+            >
+              Nueva consulta
+              <span className="material-icons text-[16px]">arrow_forward</span>
+            </button>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   return (

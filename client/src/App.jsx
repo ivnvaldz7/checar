@@ -16,6 +16,11 @@ function PageLoader() {
   )
 }
 
+function swallowAbortError(error) {
+  if (error?.name === 'AbortError') return
+  console.error(error)
+}
+
 export default function App() {
   const location = useLocation()
   const [displayLocation, setDisplayLocation] = useState(location)
@@ -26,23 +31,20 @@ export default function App() {
       return
     }
 
-    const transition = document.startViewTransition(() => {
-      flushSync(() => {
-        setDisplayLocation(location)
+    try {
+      const transition = document.startViewTransition(() => {
+        flushSync(() => {
+          setDisplayLocation(location)
+        })
       })
-    })
 
-    transition.ready.catch(() => {
-      // El navegador puede saltar la transición antes de arrancarla.
-    })
-
-    transition.updateCallbackDone.catch(() => {
-      // La actualización visual puede descartarse si entra otra navegación.
-    })
-
-    transition.finished.catch(() => {
-      // En navegación rápida el navegador puede cancelar la transición visual.
-    })
+      void transition.ready.catch(swallowAbortError)
+      void transition.updateCallbackDone.catch(swallowAbortError)
+      void transition.finished.catch(swallowAbortError)
+    } catch (error) {
+      swallowAbortError(error)
+      setDisplayLocation(location)
+    }
   }, [location])
 
   return (

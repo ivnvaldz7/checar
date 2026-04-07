@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { buildJsonGenerationConfig, parseGeminiJsonResponse } from './geminiJson.js'
+import { parseGeminiJsonResponse } from './geminiJson.js'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
@@ -26,22 +26,6 @@ const SCHEMA_EJEMPLO = JSON.stringify({
   explanation: 'Según el INDEC, la desocupación en el tercer trimestre de 2024 fue de 6,9%, no 5,7% como afirma la nota.',
   sources: ['https://www.indec.gob.ar/indec/web/Nivel4-Tema-4-31-58'],
 }, null, 2)
-
-const CLAIM_VERIFICATION_SCHEMA = {
-  type: 'object',
-  required: ['verdict', 'explanation', 'sources'],
-  properties: {
-    verdict: {
-      type: 'string',
-      enum: VERDICTS_VALIDOS,
-    },
-    explanation: { type: 'string' },
-    sources: {
-      type: 'array',
-      items: { type: 'string' },
-    },
-  },
-}
 
 function normalizeSources(parsedSources, groundingChunks) {
   if (Array.isArray(groundingChunks) && groundingChunks.length > 0) {
@@ -82,7 +66,10 @@ export async function verifyClaim(claimText) {
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.5-flash',
     tools: [{ googleSearch: {} }],
-    generationConfig: buildJsonGenerationConfig(CLAIM_VERIFICATION_SCHEMA),
+    // Gemini no soporta responseMimeType JSON cuando hay tool use activo.
+    generationConfig: {
+      temperature: 0.1,
+    },
   })
 
   const prompt = `Verificá la siguiente afirmación de un artículo periodístico argentino buscando en fuentes oficiales.

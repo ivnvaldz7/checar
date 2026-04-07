@@ -7,14 +7,26 @@ import { io } from 'socket.io-client'
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'
 
 let socket = null
+let activeSessionId = null
+let disconnectTimer = null
 
 // ── Conexión ───────────────────────────────────────────────────────────────
 
 /**
  * Conecta al servidor y emite join_session con el sessionId.
- * Si ya había una conexión activa, la cierra primero.
+ * Reutiliza el socket existente cuando corresponde y cancela desconexiones
+ * diferidas para tolerar el doble montaje de React.StrictMode en desarrollo.
  */
 export function connect(sessionId) {
+  if (disconnectTimer) {
+    clearTimeout(disconnectTimer)
+    disconnectTimer = null
+  }
+
+  if (socket && activeSessionId === sessionId) {
+    return socket
+  }
+
   if (socket) {
     socket.removeAllListeners()
     socket.disconnect()
@@ -23,8 +35,8 @@ export function connect(sessionId) {
 
   socket = io(SERVER_URL, {
     transports: ['websocket'],
-    forceNew: true,
   })
+  activeSessionId = sessionId
 
   socket.on('connect', () => {
     socket.emit('join_session', { sessionId })
@@ -38,9 +50,17 @@ export function connect(sessionId) {
  */
 export function disconnect() {
   if (socket) {
-    socket.removeAllListeners()
-    socket.disconnect()
-    socket = null
+    const socketToClose = socket
+
+    disconnectTimer = setTimeout(() => {
+      if (socket !== socketToClose) return
+
+      socketToClose.removeAllListeners()
+      socketToClose.disconnect()
+      socket = null
+      activeSessionId = null
+      disconnectTimer = null
+    }, 0)
   }
 }
 

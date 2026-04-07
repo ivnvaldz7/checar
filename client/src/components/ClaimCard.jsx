@@ -1,4 +1,4 @@
-import { verdicts, verdictBg, verdictLabels } from '../tokens'
+import { claimAccents, verdicts, verdictBg, verdictLabels } from '../tokens'
 
 // ── Sparkline SVG inline ───────────────────────────────────────────────────
 // Renderiza un gráfico de línea simple a partir de datos históricos.
@@ -55,6 +55,7 @@ function Sparkline({ data }) {
 //   isLoading     bool    — muestra esqueleto animado mientras se verifica
 
 export default function ClaimCard({
+  claimIndex,
   claim,
   verdict,
   explanation,
@@ -62,12 +63,21 @@ export default function ClaimCard({
   historicalData,
   isLoading,
 }) {
+  const accent = claimAccents[(claimIndex ?? 0) % claimAccents.length]
+
   // ── Estado loading ─────────────────────────────────
   if (isLoading) {
     return (
-      <div className="border-l-4 border-bdr bg-bg2 rounded-r-lg p-4 animate-claim-appear">
+      <div
+        className="border-l-4 rounded-r-lg p-4 animate-claim-appear"
+        style={{
+          borderLeftColor: accent.line,
+          backgroundColor: 'rgba(25, 25, 27, 0.92)',
+          boxShadow: `inset 0 1px 0 ${accent.soft}`,
+        }}
+      >
         <div className="flex items-center gap-2 mb-3">
-          <div className="h-2 w-2 rounded-full bg-ink-3 animate-pulse" />
+          <div className="h-6 min-w-6 px-1.5 rounded-full animate-pulse" style={{ backgroundColor: accent.soft }} />
           <div className="h-2.5 bg-bg3 rounded w-20 animate-shimmer" />
         </div>
         <div className="space-y-2 mb-4">
@@ -78,8 +88,8 @@ export default function ClaimCard({
         {/* Barra de progreso animada */}
         <div className="w-full h-0.5 bg-bg3 rounded-full overflow-hidden">
           <div
-            className="h-full bg-accent rounded-full animate-shimmer"
-            style={{ width: '65%' }}
+            className="h-full rounded-full animate-shimmer"
+            style={{ width: '65%', backgroundColor: accent.line }}
           />
         </div>
       </div>
@@ -108,21 +118,31 @@ export default function ClaimCard({
   return (
     <div
       className="border-l-4 rounded-r-lg p-4 animate-claim-appear transition-all"
-      style={{ borderLeftColor: borderColor, backgroundColor: bgColor }}
+      style={{
+        borderLeftColor: accent.line,
+        backgroundColor: bgColor,
+        boxShadow: `inset 0 1px 0 ${accent.soft}`,
+      }}
     >
-      {/* Veredicto badge */}
       <div className="flex items-center justify-between mb-3">
-        <span
-          className={`text-[10px] font-grotesk font-semibold tracking-widest px-2 py-0.5 rounded ${badgeColors[verdict] ?? badgeColors.sin_datos}`}
-        >
-          {label}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-flex items-center justify-center min-w-7 h-7 rounded-full font-mono text-[10px] font-bold"
+            style={{ backgroundColor: accent.soft, color: accent.line }}
+          >
+            {(claimIndex ?? 0) + 1}
+          </span>
+          <span
+            className={`text-[10px] font-grotesk font-semibold tracking-widest px-2 py-0.5 rounded ${badgeColors[verdict] ?? badgeColors.sin_datos}`}
+          >
+            {label}
+          </span>
+        </div>
         {historicalData && (
           <Sparkline data={historicalData} />
         )}
       </div>
 
-      {/* Texto del claim */}
       <p className="font-mono text-[13px] text-ink-1 leading-relaxed mb-3 italic">
         &ldquo;{claim}&rdquo;
       </p>

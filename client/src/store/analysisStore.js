@@ -24,14 +24,37 @@ const useAnalysisStore = create((set) => ({
     })),
 
   addClaim: (claim) =>
-    set((state) => ({
-      claims: [...state.claims, claim],
-    })),
+    set((state) => {
+      const claimIndex = typeof claim.claimIndex === 'number'
+        ? claim.claimIndex
+        : state.claims.length
+
+      const nextClaims = [...state.claims]
+      const existingIndex = nextClaims.findIndex((item) => item.claimIndex === claimIndex)
+
+      if (existingIndex >= 0) {
+        nextClaims[existingIndex] = claim
+      } else {
+        nextClaims.push(claim)
+      }
+
+      nextClaims.sort((a, b) => {
+        const aIndex = typeof a.claimIndex === 'number' ? a.claimIndex : Number.MAX_SAFE_INTEGER
+        const bIndex = typeof b.claimIndex === 'number' ? b.claimIndex : Number.MAX_SAFE_INTEGER
+        return aIndex - bIndex
+      })
+
+      return { claims: nextClaims }
+    }),
 
   setComplete: ({ claims, articleTitle, articleText }) =>
     set({
       status: 'success',
-      claims,
+      claims: [...claims].sort((a, b) => {
+        const aIndex = typeof a.claimIndex === 'number' ? a.claimIndex : Number.MAX_SAFE_INTEGER
+        const bIndex = typeof b.claimIndex === 'number' ? b.claimIndex : Number.MAX_SAFE_INTEGER
+        return aIndex - bIndex
+      }),
       articleTitle,
       articleText,
     }),

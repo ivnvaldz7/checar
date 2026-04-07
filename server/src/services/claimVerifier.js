@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { buildJsonGenerationConfig, parseGeminiJsonResponse } from './geminiJson.js'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
@@ -26,6 +27,52 @@ const SCHEMA_EJEMPLO = JSON.stringify({
   sources: ['https://www.indec.gob.ar/indec/web/Nivel4-Tema-4-31-58'],
 }, null, 2)
 
+const CLAIM_VERIFICATION_SCHEMA = {
+  type: 'object',
+  required: ['verdict', 'explanation', 'sources'],
+  properties: {
+    verdict: {
+      type: 'string',
+      enum: VERDICTS_VALIDOS,
+    },
+    explanation: { type: 'string' },
+    sources: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+  },
+}
+
+function normalizeSources(parsedSources, groundingChunks) {
+  if (Array.isArray(groundingChunks) && groundingChunks.length > 0) {
+    return groundingChunks
+      .filter(c => c?.web?.uri)
+      .map(c => ({
+        url: c.web.uri,
+        label: c.web.title || extractDomain(c.web.uri),
+      }))
+  }
+
+  if (!Array.isArray(parsedSources)) return []
+
+  return parsedSources.flatMap((source) => {
+    if (typeof source === 'string') {
+      return [{ url: source, label: extractDomain(source) }]
+    }
+
+    if (source && typeof source.url === 'string') {
+      return [{
+        url: source.url,
+        label: typeof source.label === 'string' && source.label.trim().length > 0
+          ? source.label.trim()
+          : extractDomain(source.url),
+      }]
+    }
+
+    return []
+  })
+}
+
 /**
  * Verifica una afirmación individual usando Gemini con Search Grounding.
  * @param {string} claimText
@@ -35,6 +82,7 @@ export async function verifyClaim(claimText) {
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.5-flash',
     tools: [{ googleSearch: {} }],
+    generationConfig: buildJsonGenerationConfig(CLAIM_VERIFICATION_SCHEMA),
   })
 
   const prompt = `Verificá la siguiente afirmación de un artículo periodístico argentino buscando en fuentes oficiales.
@@ -79,36 +127,18 @@ Donde:
   }
 
   try {
-    const cleaned = raw.replace(/^```(?:json)?\n?|\n?```$/gm, '').trim()
-    const parsed = JSON.parse(cleaned)
+    const parsed = parseGeminiJsonResponse(raw)
 
     if (!VERDICTS_VALIDOS.includes(parsed.verdict)) {
       throw new Error(`Verdict inválido: "${parsed.verdict}"`)
     }
 
-    // Extraer fuentes del groundingMetadata si está disponible
-    let sources
     const chunks = result?.response?.candidates?.[0]?.groundingMetadata?.groundingChunks
-    if (Array.isArray(chunks) && chunks.length > 0) {
-      sources = chunks
-        .filter(c => c?.web?.uri)
-        .map(c => ({
-          url: c.web.uri,
-          label: c.web.title || extractDomain(c.web.uri),
-        }))
-    } else {
-      // Fallback: fuentes del JSON de respuesta
-      sources = Array.isArray(parsed.sources)
-        ? parsed.sources
-            .filter(s => typeof s === 'string')
-            .map(s => ({ url: s, label: extractDomain(s) }))
-        : []
-    }
 
     return {
       verdict: parsed.verdict,
       explanation: typeof parsed.explanation === 'string' ? parsed.explanation.trim() : '',
-      sources,
+      sources: normalizeSources(parsed.sources, chunks),
     }
   } catch (err) {
     console.error('[claimVerifier] respuesta de Gemini sin el formato esperado. Raw:', raw)

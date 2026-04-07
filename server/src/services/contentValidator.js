@@ -1,6 +1,16 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { buildJsonGenerationConfig, parseGeminiJsonResponse } from './geminiJson.js'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+
+const CONTENT_VALIDATION_SCHEMA = {
+  type: 'object',
+  required: ['valid', 'reason'],
+  properties: {
+    valid: { type: 'boolean' },
+    reason: { type: 'string' },
+  },
+}
 
 /**
  * Valida si el texto contiene contenido político argentino verificable.
@@ -9,7 +19,10 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
  * @returns {{ valid: boolean, reason: string }}
  */
 export async function validateContent(text) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.5-flash',
+    generationConfig: buildJsonGenerationConfig(CONTENT_VALIDATION_SCHEMA),
+  })
 
   // Usamos los primeros 2000 caracteres para no gastar tokens innecesarios
   const sample = text.slice(0, 2000)
@@ -31,8 +44,7 @@ TEXTO: ${sample}`
   }
 
   try {
-    const cleaned = raw.replace(/^```(?:json)?\n?|\n?```$/gm, '').trim()
-    const parsed = JSON.parse(cleaned)
+    const parsed = parseGeminiJsonResponse(raw)
 
     if (typeof parsed.valid !== 'boolean') throw new Error('Campo valid ausente')
 

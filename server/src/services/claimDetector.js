@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { buildJsonGenerationConfig, parseGeminiJsonResponse } from './geminiJson.js'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
@@ -10,13 +11,34 @@ const SCHEMA_EJEMPLO = JSON.stringify({
   ],
 }, null, 2)
 
+const CLAIMS_RESPONSE_SCHEMA = {
+  type: 'object',
+  required: ['claims'],
+  properties: {
+    claims: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['text', 'isNumerical'],
+        properties: {
+          text: { type: 'string' },
+          isNumerical: { type: 'boolean' },
+        },
+      },
+    },
+  },
+}
+
 /**
  * Detecta hasta 7 afirmaciones verificables en un artículo.
  * @param {string} articleText
  * @returns {Array<{ text: string, isNumerical: boolean }>}
  */
 export async function detectClaims(articleText) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.5-flash',
+    generationConfig: buildJsonGenerationConfig(CLAIMS_RESPONSE_SCHEMA),
+  })
 
   const prompt = `Analizá el siguiente artículo periodístico argentino y extraé hasta 7 afirmaciones verificables.
 
@@ -53,8 +75,7 @@ ${articleText}
   }
 
   try {
-    const cleaned = raw.replace(/^```(?:json)?\n?|\n?```$/gm, '').trim()
-    const parsed = JSON.parse(cleaned)
+    const parsed = parseGeminiJsonResponse(raw)
 
     if (!parsed.claims || !Array.isArray(parsed.claims)) {
       throw new Error('El campo "claims" no es un array')

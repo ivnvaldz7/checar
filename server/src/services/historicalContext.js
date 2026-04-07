@@ -1,6 +1,26 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { buildJsonGenerationConfig, parseGeminiJsonResponse } from './geminiJson.js'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+
+const HISTORICAL_CONTEXT_SCHEMA = {
+  type: 'object',
+  required: ['available'],
+  properties: {
+    available: { type: 'boolean' },
+    data: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['month', 'value'],
+        properties: {
+          month: { type: 'string' },
+          value: { type: 'number' },
+        },
+      },
+    },
+  },
+}
 
 /**
  * Busca contexto histórico en INDEC para un claim numérico.
@@ -13,6 +33,7 @@ export async function getHistoricalContext(claimText) {
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.5-flash',
     tools: [{ googleSearch: {} }],
+    generationConfig: buildJsonGenerationConfig(HISTORICAL_CONTEXT_SCHEMA),
   })
 
   const SCHEMA_EJEMPLO = JSON.stringify({
@@ -53,8 +74,7 @@ Si no hay datos:
   }
 
   try {
-    const cleaned = raw.replace(/^```(?:json)?\n?|\n?```$/gm, '').trim()
-    const parsed = JSON.parse(cleaned)
+    const parsed = parseGeminiJsonResponse(raw)
 
     if (typeof parsed.available !== 'boolean') return { available: false }
     if (!parsed.available) return { available: false }

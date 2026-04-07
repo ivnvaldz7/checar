@@ -23,6 +23,39 @@ export const verdictLabels = {
   sin_datos: 'SIN DATOS',
 }
 
+export const claimAccents = [
+  {
+    line: '#7aa2ff',
+    soft: 'rgba(122, 162, 255, 0.16)',
+    glow: 'rgba(122, 162, 255, 0.35)',
+  },
+  {
+    line: '#d9836b',
+    soft: 'rgba(217, 131, 107, 0.16)',
+    glow: 'rgba(217, 131, 107, 0.35)',
+  },
+  {
+    line: '#83a66b',
+    soft: 'rgba(131, 166, 107, 0.16)',
+    glow: 'rgba(131, 166, 107, 0.35)',
+  },
+  {
+    line: '#d7aa45',
+    soft: 'rgba(215, 170, 69, 0.16)',
+    glow: 'rgba(215, 170, 69, 0.35)',
+  },
+  {
+    line: '#b46fa1',
+    soft: 'rgba(180, 111, 161, 0.16)',
+    glow: 'rgba(180, 111, 161, 0.35)',
+  },
+  {
+    line: '#5ba6a6',
+    soft: 'rgba(91, 166, 166, 0.16)',
+    glow: 'rgba(91, 166, 166, 0.35)',
+  },
+]
+
 export const palette = {
   surface:                  '#0e0e0f',
   surfaceContainerLow:      '#131315',

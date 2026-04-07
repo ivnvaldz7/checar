@@ -104,11 +104,7 @@ export async function runPipeline({ io, sessionId, input, type }) {
           verification = await verifyClaim(claim.text)
         } catch (err) {
           console.error(`[pipeline] error verificando claim ${i}:`, err.message, err)
-          emit('analysis_error', {
-            message: err.message || 'Gemini no pudo verificar este claim.',
-            step: 'claim_verification',
-          })
-          // Continuar con sin_datos para no cortar el pipeline
+          // Fallback no fatal: si un claim falla, devolvemos sin_datos y seguimos.
           verification = {
             verdict: 'sin_datos',
             explanation: 'No se pudo verificar este claim.',
@@ -124,6 +120,7 @@ export async function runPipeline({ io, sessionId, input, type }) {
         }
 
         const verifiedClaim = {
+          claimIndex: i,
           claim: claim.text,
           verdict: verification.verdict,
           explanation: verification.explanation,

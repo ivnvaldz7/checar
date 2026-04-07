@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ClaimCard from '../components/ClaimCard'
 import useAnalysisStore from '../store/analysisStore'
-import { verdicts, verdictLabels } from '../tokens'
+import { claimAccents, verdicts, verdictLabels } from '../tokens'
 
 // ── Mock data de fallback ──────────────────────────────────────────────────
 // Se usa cuando BriefingPage se abre directamente (sin pasar por AnalysisPage).
@@ -134,7 +134,7 @@ const SUMMARY_ITEMS = [
 
 export default function BriefingPage() {
   const navigate    = useNavigate()
-  const [copied, setCopied] = useState(false)
+  const [shareState, setShareState] = useState('idle')
 
   // Lee del store si viene de AnalysisPage; si no, usa el mock.
   const storeClaims = useAnalysisStore((s) => s.claims)
@@ -145,14 +145,33 @@ export default function BriefingPage() {
   const title  = storeTitle  || MOCK_TITLE
 
   const counts = VERDICT_COUNTS(claims)
+  const claimLegend = claims.map((claim, index) => {
+    const claimIndex = claim.claimIndex ?? index
+    return {
+      ...claim,
+      claimIndex,
+      accent: claimAccents[claimIndex % claimAccents.length],
+    }
+  })
 
-  const handleCopy = async () => {
+  const briefingText = buildCopyText(claims, title)
+
+  const handleShare = async () => {
     try {
-      await navigator.clipboard.writeText(buildCopyText(claims, title))
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2500)
+      if (navigator.share) {
+        await navigator.share({
+          title: `ChecAR — ${title}`,
+          text: briefingText,
+        })
+        setShareState('shared')
+      } else {
+        await navigator.clipboard.writeText(briefingText)
+        setShareState('copied')
+      }
+
+      setTimeout(() => setShareState('idle'), 2500)
     } catch {
-      // fallback: no hay nada útil que hacer sin permisos de clipboard
+      // Si compartir falla o se cancela, evitamos romper la UI.
     }
   }
 
@@ -169,13 +188,15 @@ export default function BriefingPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={handleCopy}
+            onClick={handleShare}
             className="flex items-center gap-1.5 bg-surface-container hover:bg-surface-container-highest px-3 py-2 font-mono text-[10px] text-ink-1 rounded-[0.125rem] tracking-[0.05em] transition-colors"
           >
             <span className="material-icons text-[13px] text-primary">
-              {copied ? 'check' : 'content_copy'}
+              {shareState === 'idle' ? 'ios_share' : 'check'}
             </span>
-            {copied ? 'COPIADO' : 'COPIAR BRIEFING'}
+            {shareState === 'shared' && 'COMPARTIDO'}
+            {shareState === 'copied' && 'COPIADO'}
+            {shareState === 'idle' && 'COMPARTIR RESUMEN'}
           </button>
           <button
             onClick={() => { reset(); navigate('/') }}
@@ -233,6 +254,51 @@ export default function BriefingPage() {
           ))}
         </div>
 
+        <div className="bg-surface-container-low border border-bdr-faint rounded-[0.2rem] p-4 mb-8">
+          <div className="flex items-center justify-between gap-4 mb-3">
+            <span className="font-mono text-[9px] text-outline tracking-[0.18em]">
+              MAPA DE CLAIMS
+            </span>
+            <span className="font-mono text-[9px] text-outline tracking-[0.14em]">
+              {claimLegend.length} REFERENCIAS
+            </span>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-2.5">
+            {claimLegend.map((claim) => (
+              <div
+                key={claim.claimIndex}
+                className="rounded-[0.2rem] border px-3 py-2.5"
+                style={{
+                  borderColor: claim.accent.soft,
+                  backgroundColor: 'rgba(255,255,255,0.015)',
+                }}
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span
+                    className="inline-flex items-center justify-center min-w-6 h-6 rounded-full font-mono text-[9px] font-bold"
+                    style={{
+                      color: claim.accent.line,
+                      backgroundColor: claim.accent.soft,
+                    }}
+                  >
+                    #{claim.claimIndex + 1}
+                  </span>
+                  <span
+                    className="font-mono text-[9px] tracking-[0.12em]"
+                    style={{ color: claim.accent.line }}
+                  >
+                    {verdictLabels[claim.verdict] ?? claim.verdict}
+                  </span>
+                </div>
+                <p className="font-inter text-[12px] text-ink-2 leading-relaxed line-clamp-2">
+                  {claim.claim}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Label claims */}
         <div className="flex items-center gap-3 mb-5">
           <span className="font-mono text-[9px] text-outline tracking-[0.2em] shrink-0">
@@ -249,10 +315,21 @@ export default function BriefingPage() {
           {claims.map((claim, i) => (
             <div key={i}>
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="font-mono text-[9px] text-outline tracking-wide">#{i + 1}</span>
-                <span className="flex-1 h-px bg-surface-container-highest" />
+                <span
+                  className="inline-flex items-center justify-center min-w-6 h-6 rounded-full font-mono text-[9px] font-bold"
+                  style={{
+                    color: claimAccents[(claim.claimIndex ?? i) % claimAccents.length].line,
+                    backgroundColor: claimAccents[(claim.claimIndex ?? i) % claimAccents.length].soft,
+                  }}
+                >
+                  #{(claim.claimIndex ?? i) + 1}
+                </span>
+                <span
+                  className="flex-1 h-px"
+                  style={{ backgroundColor: claimAccents[(claim.claimIndex ?? i) % claimAccents.length].soft }}
+                />
               </div>
-              <ClaimCard {...claim} isLoading={false} />
+              <ClaimCard {...claim} claimIndex={claim.claimIndex ?? i} isLoading={false} />
             </div>
           ))}
         </div>

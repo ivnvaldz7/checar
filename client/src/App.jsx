@@ -25,10 +25,23 @@ export default function App() {
       setDisplayLocation(location)
       return
     }
-    document.startViewTransition(() => {
+
+    const transition = document.startViewTransition(() => {
       flushSync(() => {
         setDisplayLocation(location)
       })
+    })
+
+    transition.ready.catch(() => {
+      // El navegador puede saltar la transición antes de arrancarla.
+    })
+
+    transition.updateCallbackDone.catch(() => {
+      // La actualización visual puede descartarse si entra otra navegación.
+    })
+
+    transition.finished.catch(() => {
+      // En navegación rápida el navegador puede cancelar la transición visual.
     })
   }, [location])
 

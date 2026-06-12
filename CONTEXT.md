@@ -11,7 +11,7 @@ Proyecto nuevo. No hay código previo. Este archivo es la fuente de verdad técn
 | Capa | Tecnología | Deploy |
 |------|-----------|--------|
 | Frontend | React + Vite + Zustand + React Router | Vercel |
-| Backend | Node.js + Express + Socket.io | Railway |
+| Backend | Node.js + Express + Socket.io | Render |
 | LLM + búsqueda | Gemini 2.0 Flash + Google Search Grounding | API (Google AI Studio) |
 | Extracción de artículos | `@mozilla/readability` + `node-fetch` + `jsdom` | — |
 | Base de datos | ❌ No hay | — |

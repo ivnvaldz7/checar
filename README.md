@@ -22,7 +22,7 @@ No es un detector de fake news. Es un asistente para periodistas e investigadore
 ## Stack
 
 - Frontend: React + Vite + Zustand + React Router — Vercel
-- Backend: Node.js + Express + Socket.io — Railway
+- Backend: Node.js + Express + Socket.io — Render
 - LLM: Gemini 2.0 Flash con Google Search Grounding
 - Extracción de artículos: `@mozilla/readability`
 

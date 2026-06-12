@@ -66,18 +66,18 @@ Cada decisión incluye: qué se decidió, por qué, y qué alternativas se desca
 
 ---
 
-## [005] Railway sobre Render para el backend
+## [005] Render sobre Vercel para el backend
 
-**Decisión:** El backend se deploya en Railway.
+**Decisión:** El backend se deploya en Render.
 
 **Por qué:**
-- Render free tier tiene cold starts de ~30 segundos
-- Un cold start durante una demo de recruiter es inaceptable
-- Railway free tier (500hs/mes) no tiene cold start
+- Render provee instancias (Web Services) esenciales para mantener conexiones WebSocket continuas (Socket.io).
+- Es una plataforma 100% gratuita que no exige tarjeta de crédito para empezar.
+- Aceptamos el tradeoff del cold start de ~50s frente a la ventaja de no usar tarjeta de crédito.
 
 **Alternativas descartadas:**
-- Render → descartado por cold start
-- Fly.io → viable pero Railway tiene mejor DX para proyectos Node.js simples
+- Vercel (Serverless) → descartado porque corta conexiones de larga duración.
+- Koyeb / Fly.io → descartados por mayor fricción inicial o requerir verificación de tarjeta de crédito.
 
 ---
 

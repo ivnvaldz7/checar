@@ -14,6 +14,7 @@ import {
   onAnalysisError,
   onConnectError,
 } from '../services/socket'
+import { SERVER_URL_ERROR } from '../services/serverUrl'
 
 export default function AnalysisPage() {
   const { sessionId } = useParams()
@@ -40,10 +41,16 @@ export default function AnalysisPage() {
 
   // ── Conexión Socket.io ─────────────────────────────
   useEffect(() => {
-    connect(sessionId)
+    const socketClient = connect(sessionId)
 
-    onConnectError(() => {
-      setError('No pudimos conectar con el servidor. ¿Está corriendo en puerto 3001?')
+    if (!socketClient) {
+      setError(SERVER_URL_ERROR)
+      return () => disconnect()
+    }
+
+    onConnectError((connectionError) => {
+      const detail = connectionError?.message ? ` (${connectionError.message})` : ''
+      setError(`No pudimos conectar con el backend${detail}. Verificá que Render esté activo.`)
     })
 
     onPipelineStep(({ step, label }) => {

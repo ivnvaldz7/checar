@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import { randomUUID } from 'crypto'
-import { runPipeline } from '../pipeline.js'
 
 const TTL_MS = 30_000 // tiempo máximo de espera para join_session
+const MAX_INPUT_CHARS = 8_000
 
 /**
  * Jobs pendientes: sessionId → { io, input, type }.
@@ -25,8 +25,25 @@ export function createAnalyzeRouter() {
       return res.status(400).json({ error: 'El campo "input" es requerido y no puede estar vacío.' })
     }
 
+    if (input.length > MAX_INPUT_CHARS) {
+      return res.status(413).json({ error: `El campo "input" no puede superar los ${MAX_INPUT_CHARS} caracteres.` })
+    }
+
     if (!['url', 'text'].includes(type)) {
       return res.status(400).json({ error: 'El campo "type" debe ser "url" o "text".' })
+    }
+
+    if (type === 'url') {
+      let url
+      try {
+        url = new URL(input.trim())
+      } catch {
+        return res.status(400).json({ error: 'La URL no es válida.' })
+      }
+
+      if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
+        return res.status(400).json({ error: 'Solo se admiten URLs HTTP/HTTPS sin credenciales.' })
+      }
     }
 
     const sessionId = randomUUID()

@@ -102,6 +102,8 @@ CLIENT_URL=http://localhost:5173
 VITE_SERVER_URL=http://localhost:3001
 ```
 
+En producción, `VITE_SERVER_URL` debe ser la URL HTTPS del Web Service de Render. No debe quedar vacío ni apuntar al dominio de Vercel.
+
 ---
 
 ## Design tokens (client/src/tokens.js)

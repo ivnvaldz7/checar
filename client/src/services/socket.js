@@ -3,8 +3,7 @@
 // El singleton a nivel de módulo asegura una sola conexión activa a la vez.
 
 import { io } from 'socket.io-client'
-
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'
+import { SERVER_URL } from './serverUrl'
 
 let socket = null
 let activeSessionId = null
@@ -18,6 +17,8 @@ let disconnectTimer = null
  * diferidas para tolerar el doble montaje de React.StrictMode en desarrollo.
  */
 export function connect(sessionId) {
+  if (!SERVER_URL) return null
+
   if (disconnectTimer) {
     clearTimeout(disconnectTimer)
     disconnectTimer = null
@@ -34,7 +35,9 @@ export function connect(sessionId) {
   }
 
   socket = io(SERVER_URL, {
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
+    timeout: 10_000,
+    reconnectionAttempts: 5,
   })
   activeSessionId = sessionId
 

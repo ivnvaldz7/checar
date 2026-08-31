@@ -62,4 +62,30 @@ La decisión también cambia el usuario objetivo. Un periodista que verifica dat
 
 ## Variables de entorno
 
-Ver `server/.env.example`.
+### Desarrollo local
+
+Copiá los ejemplos y completá la clave de Gemini:
+
+```bash
+cp client/.env.example client/.env
+cp server/.env.example server/.env
+```
+
+El frontend usa `VITE_SERVER_URL=http://localhost:3001`. El backend requiere una `GEMINI_API_KEY` válida y escucha en el puerto indicado por `PORT`.
+
+### Deploy
+
+El proyecto se divide en dos servicios:
+
+1. **Vercel:** frontend Vite. El Root Directory debe ser la raíz del repositorio. Configurá `VITE_SERVER_URL` con la URL HTTPS pública de Render y redeployá, porque Vite la incrusta durante el build.
+2. **Render Web Service:** backend Express + Socket.io. Usá Root Directory `server`, Build Command `npm install` y Start Command `npm start`. Configurá `GEMINI_API_KEY` y `CLIENT_URL` con el dominio de Vercel.
+
+También se incluye `render.yaml` como Blueprint para crear el Web Service con esa configuración.
+
+Comprobación mínima después del deploy:
+
+```text
+GET https://<backend>.onrender.com/health → {"status":"ok"}
+```
+
+No configures `VITE_SERVER_URL` con el dominio de Vercel: allí vive el frontend, no el backend.

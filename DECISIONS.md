@@ -216,3 +216,21 @@ Cada decisión incluye: qué se decidió, por qué, y qué alternativas se desca
 **Alternativas descartadas:**
 - Parsear y reemplazar las URLs internas con regex → frágil, depende del formato interno de Google
 - Pedir explícitamente las URLs en el prompt → Gemini igualmente devuelve sus URLs internas cuando Search Grounding está activo
+
+---
+
+## [015] CORS configurable con comodines y fallback para Vercel
+
+**Decisión:** `CLIENT_URL` acepta una lista separada por comas de orígenes exactos o patrones con comodín (`https://*.vercel.app`). Si la variable falta, el server usa `https://checar-v2.vercel.app` y `https://*.vercel.app` como fallback. `http://localhost:5173` y `http://127.0.0.1:5173` quedan siempre permitidos. Al arrancar se loguea la allowlist y cada origen bloqueado.
+
+**Por qué:**
+- El backend en Render arrancaba con `CLIENT_URL` vacía (`origin: false`) y el preflight de `/api/analyze` no devolvía `Access-Control-Allow-Origin`, bloqueando el frontend de Vercel.
+- Los previews de Vercel usan un dominio distinto en cada deploy; exigir uno exacto rompía cada preview.
+- El fallback evita que un deploy quede inutilizable por una env faltante.
+
+**Alternativas descartadas:**
+- `origin: true` / `*` → permite cualquier sitio; innecesariamente amplio.
+- Solo configurar la env en Render → correcto, pero frágil ante env faltante y previews.
+- Habilitar `credentials` → no hay cookies ni auth, no aplica.
+
+**Trade-off:** `https://*.vercel.app` permite que cualquier sitio alojado en Vercel invoque la API desde el navegador. Como la API es pública, sin auth ni cookies, el impacto real es abuso de cuota; se mitiga con rate limiting (pendiente).

@@ -14,16 +14,57 @@ if (!process.env.GEMINI_API_KEY?.trim()) {
   throw new Error('Falta GEMINI_API_KEY')
 }
 
-const configuredOrigins = (process.env.CLIENT_URL || '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .map((origin) => origin.replace(/\/+$/, ''))
-  .filter(Boolean)
+// ── CORS ────────────────────────────────────────────────────────────────────
+// CLIENT_URL acepta una lista separada por comas. Cada entrada puede ser un
+// origen exacto o un patrón con comodín de subdominio, por ejemplo
+// "https://*.vercel.app" para habilitar los previews de Vercel.
+const DEFAULT_ALLOWED_ORIGINS = [
+  'https://checar-v2.vercel.app',
+  'https://*.vercel.app',
+]
 
-const corsOrigin = configuredOrigins.length === 0 ? false : configuredOrigins
+const LOCAL_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173']
+
+function parseOriginPatterns(value) {
+  return (value || '')
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean)
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function matchesOrigin(origin, pattern) {
+  if (pattern === origin) return true
+  if (!pattern.includes('*')) return false
+
+  const regex = new RegExp(`^${pattern.split('*').map(escapeRegExp).join('.*')}$`, 'i')
+  return regex.test(origin)
+}
+
+const configuredOrigins = parseOriginPatterns(process.env.CLIENT_URL)
+const allowedOrigins = [
+  ...new Set([
+    ...LOCAL_ORIGINS,
+    ...(configuredOrigins.length > 0 ? configuredOrigins : DEFAULT_ALLOWED_ORIGINS),
+  ]),
+]
 
 if (configuredOrigins.length === 0) {
-  console.warn('[config] CLIENT_URL no está configurada; CORS queda deshabilitado. Configurá el dominio de Vercel en Render.')
+  console.warn('[config] CLIENT_URL no está configurada; usando orígenes por defecto para CORS.')
+}
+console.log(`[config] CORS permitido para: ${allowedOrigins.join(', ')}`)
+
+const corsOrigin = (origin, callback) => {
+  // Sin cabecera Origin: requests server-to-server, curl o health checks.
+  if (!origin) return callback(null, true)
+
+  const allowed = allowedOrigins.some((pattern) => matchesOrigin(origin, pattern))
+  if (!allowed) console.warn(`[config] origen bloqueado por CORS: ${origin}`)
+
+  return callback(null, allowed)
 }
 
 const io = new Server(httpServer, {

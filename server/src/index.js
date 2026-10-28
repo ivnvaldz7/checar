@@ -45,15 +45,19 @@ function matchesOrigin(origin, pattern) {
 }
 
 const configuredOrigins = parseOriginPatterns(process.env.CLIENT_URL)
+
+// Los orígenes por defecto se suman siempre: así el frontend de producción y
+// los previews funcionan aunque CLIENT_URL falte o apunte a otro dominio.
 const allowedOrigins = [
   ...new Set([
     ...LOCAL_ORIGINS,
-    ...(configuredOrigins.length > 0 ? configuredOrigins : DEFAULT_ALLOWED_ORIGINS),
+    ...DEFAULT_ALLOWED_ORIGINS,
+    ...configuredOrigins,
   ]),
 ]
 
 if (configuredOrigins.length === 0) {
-  console.warn('[config] CLIENT_URL no está configurada; usando orígenes por defecto para CORS.')
+  console.warn('[config] CLIENT_URL no está configurada; CORS usa los orígenes por defecto.')
 }
 console.log(`[config] CORS permitido para: ${allowedOrigins.join(', ')}`)
 

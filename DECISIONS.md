@@ -221,12 +221,12 @@ Cada decisión incluye: qué se decidió, por qué, y qué alternativas se desca
 
 ## [015] CORS configurable con comodines y fallback para Vercel
 
-**Decisión:** `CLIENT_URL` acepta una lista separada por comas de orígenes exactos o patrones con comodín (`https://*.vercel.app`). Si la variable falta, el server usa `https://checar-v2.vercel.app` y `https://*.vercel.app` como fallback. `http://localhost:5173` y `http://127.0.0.1:5173` quedan siempre permitidos. Al arrancar se loguea la allowlist y cada origen bloqueado.
+**Decisión:** `CLIENT_URL` acepta una lista separada por comas de orígenes exactos o patrones con comodín (`https://*.vercel.app`). A esa lista se le suman siempre `https://checar-v2.vercel.app`, `https://*.vercel.app`, `http://localhost:5173` y `http://127.0.0.1:5173`. Al arrancar se loguea la allowlist y cada origen bloqueado.
 
 **Por qué:**
 - El backend en Render arrancaba con `CLIENT_URL` vacía (`origin: false`) y el preflight de `/api/analyze` no devolvía `Access-Control-Allow-Origin`, bloqueando el frontend de Vercel.
 - Los previews de Vercel usan un dominio distinto en cada deploy; exigir uno exacto rompía cada preview.
-- El fallback evita que un deploy quede inutilizable por una env faltante.
+- Sumar los orígenes por defecto evita que un deploy quede inutilizable por una env faltante o desactualizada.
 
 **Alternativas descartadas:**
 - `origin: true` / `*` → permite cualquier sitio; innecesariamente amplio.

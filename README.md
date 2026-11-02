@@ -50,6 +50,14 @@ La decisión también cambia el usuario objetivo. Un periodista que verifica dat
 | Boletín Oficial | https://www.boletinoficial.gob.ar |
 | Memoria Abierta | https://memoriaabierta.org.ar |
 
+ChecAR solo conserva un veredicto distinto de `sin_datos` cuando la respuesta incluye una fuente de esta lista o de otro organismo público argentino habilitado (por ejemplo, BCRA o Congreso).
+
+## Privacidad y límites
+
+- Los textos y URLs enviados para analizar se procesan con el proveedor configurado en el backend (Groq por defecto). No ingreses información personal o confidencial.
+- ChecAR no guarda artículos ni resultados en una base de datos; las sesiones viven en memoria mientras dura el análisis.
+- La herramienta asiste la verificación: no reemplaza la revisión editorial de las fuentes originales.
+
 ---
 
 ## Próximos pasos naturales

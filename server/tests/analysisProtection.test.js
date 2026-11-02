@@ -16,6 +16,7 @@ test('limita el undécimo análisis de una misma dirección dentro de 15 minutos
 test('solo conserva fuentes con URL HTTP o HTTPS', () => {
   const sources = normalizeSources([
     'https://www.indec.gob.ar/datos',
+    'https://example.com/no-verificada',
     'javascript:alert(1)',
     { url: 'ftp://example.com/file', label: 'No válida' },
   ])

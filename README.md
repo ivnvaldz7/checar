@@ -23,7 +23,7 @@ No es un detector de fake news. Es un asistente para periodistas e investigadore
 
 - Frontend: React + Vite + Zustand + React Router — Vercel
 - Backend: Node.js + Express + Socket.io — Render
-- LLM: Gemini 2.0 Flash con Google Search Grounding
+- LLM y búsqueda: Groq con GPT-OSS 20B y Browser Search (clave gratuita con cuota). Gemini queda como alternativa opcional.
 - Extracción de artículos: `@mozilla/readability`
 
 Sin base de datos. Sin transcripción de audio. El estado vive en memoria mientras dura la sesión.
@@ -64,21 +64,23 @@ La decisión también cambia el usuario objetivo. Un periodista que verifica dat
 
 ### Desarrollo local
 
-Copiá los ejemplos y completá la clave de Gemini:
+Copiá los ejemplos y completá una clave gratuita de Groq:
 
 ```bash
 cp client/.env.example client/.env
 cp server/.env.example server/.env
 ```
 
-El frontend usa `VITE_SERVER_URL=http://localhost:3001`. El backend requiere una `GEMINI_API_KEY` válida y escucha en el puerto indicado por `PORT`.
+El frontend usa `VITE_SERVER_URL=http://localhost:3001`. El backend requiere `GROQ_API_KEY`, usa `AI_PROVIDER=groq` y escucha en el puerto indicado por `PORT`. Creá la clave en [Groq Console](https://console.groq.com/keys) y guardala solo en tu archivo `.env` o en las variables de Render.
+
+La cuota gratuita no es un servicio garantizado: si se alcanza el límite, ChecAR informa el problema y la verificación de esa solicitud queda sin datos. Para protegerla, el backend limita por defecto a 10 análisis por IP cada 15 minutos (`MAX_ANALYSES_PER_15_MIN`). Para evitar resultados sin evidencia, las fuentes se muestran como enlaces en cada veredicto.
 
 ### Deploy
 
 El proyecto se divide en dos servicios:
 
 1. **Vercel:** frontend Vite. El Root Directory debe ser la raíz del repositorio. Configurá `VITE_SERVER_URL` con la URL HTTPS pública de Render y redeployá, porque Vite la incrusta durante el build.
-2. **Render Web Service:** backend Express + Socket.io. Usá Root Directory `server`, Build Command `npm install` y Start Command `npm start`. Configurá `GEMINI_API_KEY` y `CLIENT_URL` con el dominio de Vercel.
+2. **Render Web Service:** backend Express + Socket.io. Usá Root Directory `server`, Build Command `npm install` y Start Command `npm start`. Configurá `AI_PROVIDER=groq`, `GROQ_API_KEY`, `GROQ_MODEL=openai/gpt-oss-20b` y `CLIENT_URL` con el dominio de Vercel. No pegues la clave en el frontend ni en Git.
 
 También se incluye `render.yaml` como Blueprint para crear el Web Service con esa configuración.
 

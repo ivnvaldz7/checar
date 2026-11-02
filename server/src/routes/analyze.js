@@ -3,6 +3,28 @@ import { randomUUID } from 'crypto'
 
 const TTL_MS = 30_000 // tiempo máximo de espera para join_session
 const MAX_INPUT_CHARS = 8_000
+const ANALYSIS_WINDOW_MS = 15 * 60_000
+const DEFAULT_MAX_ANALYSES_PER_WINDOW = 10
+const rawLimit = Number(process.env.MAX_ANALYSES_PER_15_MIN)
+const MAX_ANALYSES_PER_WINDOW = Number.isInteger(rawLimit) && rawLimit > 0
+  ? rawLimit
+  : DEFAULT_MAX_ANALYSES_PER_WINDOW
+
+const requestsByAddress = new Map()
+
+export function isRateLimited(address, now) {
+  const active = (requestsByAddress.get(address) || [])
+    .filter((timestamp) => now - timestamp < ANALYSIS_WINDOW_MS)
+
+  if (active.length >= MAX_ANALYSES_PER_WINDOW) {
+    requestsByAddress.set(address, active)
+    return true
+  }
+
+  active.push(now)
+  requestsByAddress.set(address, active)
+  return false
+}
 
 /**
  * Jobs pendientes: sessionId → { io, input, type }.
@@ -19,6 +41,13 @@ export function createAnalyzeRouter() {
   const router = Router()
 
   router.post('/', (req, res) => {
+    const address = req.ip || req.socket.remoteAddress || 'unknown'
+    if (isRateLimited(address, Date.now())) {
+      return res.status(429).json({
+        error: 'Alcanzaste el límite temporal de análisis. Esperá unos minutos e intentá nuevamente.',
+      })
+    }
+
     const { input, type } = req.body
 
     if (!input || typeof input !== 'string' || input.trim().length === 0) {

@@ -1,5 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { parseGeminiJsonResponse } from './geminiJson.js'
+import { GEMINI_MODEL, classifyGeminiError } from './geminiConfig.js'
+import { AI_PROVIDER } from './aiConfig.js'
+import { classifyGroqError, generateGroqJson } from './groqClient.js'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
@@ -11,15 +14,6 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
  * @returns {{ available: boolean, data?: string }}
  */
 export async function getHistoricalContext(claimText) {
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    tools: [{ googleSearch: {} }],
-    // Con herramientas activas, pedimos JSON por prompt y lo parseamos a mano.
-    generationConfig: {
-      temperature: 0.1,
-    },
-  })
-
   const SCHEMA_EJEMPLO = JSON.stringify({
     available: true,
     data: [
@@ -50,10 +44,20 @@ Si no hay datos:
 
   let raw
   try {
-    const result = await model.generateContent(prompt)
-    raw = result.response.text()
+    if (AI_PROVIDER === 'groq') {
+      raw = await generateGroqJson({ prompt, search: true })
+    } else {
+      const model = genAI.getGenerativeModel({
+        model: GEMINI_MODEL,
+        tools: [{ googleSearch: {} }],
+        generationConfig: { temperature: 0.1 },
+      })
+      const result = await model.generateContent(prompt)
+      raw = result.response.text()
+    }
   } catch (err) {
-    console.error('[historicalContext] error llamando a Gemini:', err)
+    const details = AI_PROVIDER === 'groq' ? classifyGroqError(err) : classifyGeminiError(err)
+    console.error('[historicalContext] contexto no disponible:', details)
     return { available: false }
   }
 

@@ -1,5 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { buildJsonGenerationConfig, parseGeminiJsonResponse } from './geminiJson.js'
+import { GEMINI_MODEL, createGeminiError } from './geminiConfig.js'
+import { AI_PROVIDER } from './aiConfig.js'
+import { createGroqError, generateGroqJson } from './groqClient.js'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
@@ -35,11 +38,6 @@ const CLAIMS_RESPONSE_SCHEMA = {
  * @returns {Array<{ text: string, isNumerical: boolean }>}
  */
 export async function detectClaims(articleText) {
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    generationConfig: buildJsonGenerationConfig(CLAIMS_RESPONSE_SCHEMA),
-  })
-
   const prompt = `Analizá el siguiente artículo periodístico argentino y extraé hasta 7 afirmaciones verificables.
 
 CRITERIOS DE SELECCIÓN:
@@ -65,13 +63,21 @@ ${articleText}
 
   let raw
   try {
-    const result = await model.generateContent(prompt)
-    raw = result.response.text()
+    if (AI_PROVIDER === 'groq') {
+      raw = await generateGroqJson({ prompt })
+    } else {
+      const model = genAI.getGenerativeModel({
+        model: GEMINI_MODEL,
+        generationConfig: buildJsonGenerationConfig(CLAIMS_RESPONSE_SCHEMA),
+      })
+      const result = await model.generateContent(prompt)
+      raw = result.response.text()
+    }
   } catch (err) {
-    console.error('[claimDetector] error llamando a Gemini:', err)
-    const e = new Error('Gemini no pudo analizar el artículo. Puede ser por límites de uso.')
-    e.step = 'claim_detection'
-    throw e
+    if (AI_PROVIDER === 'groq') {
+      throw createGroqError('detección de afirmaciones', err, 'claim_detection')
+    }
+    throw createGeminiError('detección de afirmaciones', err, 'claim_detection')
   }
 
   try {

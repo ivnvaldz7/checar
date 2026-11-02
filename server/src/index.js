@@ -5,14 +5,16 @@ import { Server } from 'socket.io'
 import cors from 'cors'
 import { createAnalyzeRouter, pendingPipelines } from './routes/analyze.js'
 import { runPipeline } from './pipeline.js'
+import { ACTIVE_MODEL, AI_PROVIDER, validateAiConfiguration } from './services/aiConfig.js'
 
 const app = express()
 const httpServer = createServer(app)
 
-if (!process.env.GEMINI_API_KEY?.trim()) {
-  console.error('[config] GEMINI_API_KEY no está configurada. El backend no puede iniciar análisis.')
-  throw new Error('Falta GEMINI_API_KEY')
-}
+// Render reenvía la IP del cliente mediante X-Forwarded-For. Sin esta opción,
+// el rate limit vería a todos los visitantes como la misma conexión interna.
+app.set('trust proxy', 1)
+
+validateAiConfiguration()
 
 // ── CORS ────────────────────────────────────────────────────────────────────
 // CLIENT_URL acepta una lista separada por comas. Cada entrada puede ser un
@@ -82,7 +84,7 @@ app.use(cors({ origin: corsOrigin }))
 app.use(express.json({ limit: '16kb' }))
 
 // Rutas
-app.get('/health', (_req, res) => res.json({ status: 'ok' }))
+app.get('/health', (_req, res) => res.json({ status: 'ok', provider: AI_PROVIDER, model: ACTIVE_MODEL }))
 app.use('/api/analyze', createAnalyzeRouter())
 
 // Express devuelve HTML por defecto cuando falla el parseo de JSON. El cliente
@@ -135,5 +137,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3001
 httpServer.listen(PORT, () => {
-  console.log(`[server] escuchando en puerto ${PORT}`)
+  console.log(`[server] escuchando en puerto ${PORT} con ${AI_PROVIDER}/${ACTIVE_MODEL}`)
 })

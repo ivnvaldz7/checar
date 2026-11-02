@@ -1,5 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { buildJsonGenerationConfig, parseGeminiJsonResponse } from './geminiJson.js'
+import { GEMINI_MODEL, classifyGeminiError } from './geminiConfig.js'
+import { AI_PROVIDER } from './aiConfig.js'
+import { classifyGroqError, generateGroqJson } from './groqClient.js'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
@@ -19,11 +22,6 @@ const CONTENT_VALIDATION_SCHEMA = {
  * @returns {{ valid: boolean, reason: string }}
  */
 export async function validateContent(text) {
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    generationConfig: buildJsonGenerationConfig(CONTENT_VALIDATION_SCHEMA),
-  })
-
   // Usamos los primeros 2000 caracteres para no gastar tokens innecesarios
   const sample = text.slice(0, 2000)
 
@@ -36,10 +34,19 @@ TEXTO: ${sample}`
 
   let raw
   try {
-    const result = await model.generateContent(prompt)
-    raw = result.response.text()
+    if (AI_PROVIDER === 'groq') {
+      raw = await generateGroqJson({ prompt })
+    } else {
+      const model = genAI.getGenerativeModel({
+        model: GEMINI_MODEL,
+        generationConfig: buildJsonGenerationConfig(CONTENT_VALIDATION_SCHEMA),
+      })
+      const result = await model.generateContent(prompt)
+      raw = result.response.text()
+    }
   } catch (err) {
-    console.error('[contentValidator] error llamando a Gemini:', err)
+    const details = AI_PROVIDER === 'groq' ? classifyGroqError(err) : classifyGeminiError(err)
+    console.error('[contentValidator] validación no disponible:', details)
     return { valid: true, reason: 'Validación no disponible.' }
   }
 
@@ -53,7 +60,7 @@ TEXTO: ${sample}`
       reason: typeof parsed.reason === 'string' ? parsed.reason.trim() : '',
     }
   } catch (err) {
-    console.error('[contentValidator] respuesta sin formato esperado. Raw:', raw)
+    console.error('[contentValidator] respuesta sin formato esperado:', err.message)
     return { valid: true, reason: 'Validación no disponible.' }
   }
 }

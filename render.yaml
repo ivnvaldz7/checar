@@ -7,7 +7,11 @@ services:
     startCommand: npm start
     healthCheckPath: /health
     envVars:
-      - key: GEMINI_API_KEY
+      - key: AI_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
         sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-20b
       - key: CLIENT_URL
         sync: false

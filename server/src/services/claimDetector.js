@@ -5,6 +5,7 @@ import { AI_PROVIDER } from './aiConfig.js'
 import { createGroqError, generateGroqJson } from './groqClient.js'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+const MAX_CLAIMS = 3
 
 const SCHEMA_EJEMPLO = JSON.stringify({
   claims: [
@@ -33,12 +34,13 @@ const CLAIMS_RESPONSE_SCHEMA = {
 }
 
 /**
- * Detecta hasta 7 afirmaciones verificables en un artículo.
+ * Detecta hasta 3 afirmaciones verificables en un artículo. El límite evita
+ * agotar la cuota gratuita de búsqueda al verificar una nota completa.
  * @param {string} articleText
  * @returns {Array<{ text: string, isNumerical: boolean }>}
  */
 export async function detectClaims(articleText) {
-  const prompt = `Analizá el siguiente artículo periodístico argentino y extraé hasta 7 afirmaciones verificables.
+  const prompt = `Analizá el siguiente artículo periodístico argentino y extraé hasta ${MAX_CLAIMS} afirmaciones verificables.
 
 CRITERIOS DE SELECCIÓN:
 - Solo afirmaciones de hecho concreto, no de opinión ni valoración subjetiva
@@ -88,7 +90,7 @@ ${articleText}
     }
 
     return parsed.claims
-      .slice(0, 7)
+      .slice(0, MAX_CLAIMS)
       .filter(c => typeof c.text === 'string' && c.text.trim().length > 0)
       .map(c => ({
         text: c.text.trim(),

@@ -56,7 +56,9 @@ export async function generateGroqJson({ prompt, search = false }) {
     model: GROQ_MODEL,
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.1,
-    max_completion_tokens: search ? 2048 : 1024,
+    // El plan gratuito tiene un límite bajo de tokens por minuto. Las salidas
+    // de ChecAR son JSON breve, así que 512 alcanza y deja margen para buscar.
+    max_completion_tokens: 512,
     stream: false,
     ...(search
       ? {

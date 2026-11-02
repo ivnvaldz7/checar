@@ -12,7 +12,7 @@ No es un detector de fake news. Es un asistente para periodistas e investigadore
 
 - Acepta URLs de artículos o texto pegado directamente
 - Emite el contenido del artículo progresivamente mientras analiza
-- Detecta hasta 7 afirmaciones verificables por nota
+- Detecta hasta 3 afirmaciones verificables por nota (límite pensado para la cuota gratuita)
 - Verifica cada claim contra fuentes oficiales argentinas (INDEC, InfoLeg, Chequeado, Boletín Oficial)
 - Agrega contexto histórico a claims con datos numéricos (evolución de los últimos 12 meses)
 - Presenta un briefing final copiable

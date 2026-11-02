@@ -28,6 +28,7 @@ test('pide JSON estructurado a Groq cuando no necesita búsqueda', async () => {
     const body = JSON.parse(request.body)
     assert.deepEqual(body.response_format, { type: 'json_object' })
     assert.equal(body.tools, undefined)
+    assert.equal(body.max_completion_tokens, 512)
   } finally {
     globalThis.fetch = originalFetch
     if (originalKey === undefined) delete process.env.GROQ_API_KEY
@@ -54,6 +55,7 @@ test('usa Browser Search sin structured output al investigar una afirmación', a
     assert.deepEqual(body.tools, [{ type: 'browser_search' }])
     assert.equal(body.tool_choice, 'required')
     assert.equal(body.response_format, undefined)
+    assert.equal(body.max_completion_tokens, 512)
   } finally {
     globalThis.fetch = originalFetch
     if (originalKey === undefined) delete process.env.GROQ_API_KEY

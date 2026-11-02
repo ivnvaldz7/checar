@@ -96,44 +96,42 @@ export async function runPipeline({ io, sessionId, input, type }) {
       emit('claim_detected', { claim: claim.text, index: i, total: claims.length })
     })
 
-    const verifiedClaims = await Promise.all(
-      claims.map(async (claim, i) => {
-        // Verificación del claim
-        let verification
-        try {
-          verification = await verifyClaim(claim.text)
-        } catch (err) {
-          console.error(`[pipeline] error verificando claim ${i}:`, err.message, err)
-          // Fallback no fatal: si un claim falla, devolvemos sin_datos y seguimos.
-          verification = {
-            verdict: 'sin_datos',
-            explanation: 'No se pudo verificar este claim.',
-            sources: [],
-          }
+    const verifiedClaims = []
+    // No ejecutar búsquedas en paralelo: con claves gratuitas, tres búsquedas
+    // simultáneas pueden superar el límite de tokens por minuto de Groq.
+    for (const [i, claim] of claims.entries()) {
+      let verification
+      try {
+        verification = await verifyClaim(claim.text)
+      } catch (err) {
+        console.error(`[pipeline] error verificando claim ${i}:`, err.message, err)
+        verification = {
+          verdict: 'sin_datos',
+          explanation: 'No se pudo verificar este claim.',
+          sources: [],
         }
+      }
 
-        // Contexto histórico (solo para claims numéricos, fallo silencioso)
-        let historicalData
-        if (claim.isNumerical) {
-          const ctx = await getHistoricalContext(claim.text)
-          if (ctx.available) historicalData = ctx.data
-        }
+      // Contexto histórico (solo para claims numéricos, fallo silencioso).
+      let historicalData
+      if (claim.isNumerical) {
+        const ctx = await getHistoricalContext(claim.text)
+        if (ctx.available) historicalData = ctx.data
+      }
 
-        const verifiedClaim = {
-          claimIndex: i,
-          claim: claim.text,
-          verdict: verification.verdict,
-          explanation: verification.explanation,
-          sources: verification.sources,
-          ...(historicalData !== undefined && { historicalData }),
-        }
+      const verifiedClaim = {
+        claimIndex: i,
+        claim: claim.text,
+        verdict: verification.verdict,
+        explanation: verification.explanation,
+        sources: verification.sources,
+        ...(historicalData !== undefined && { historicalData }),
+      }
 
-        console.log(`[pipeline] claim_verified [${i + 1}/${claims.length}] — veredicto: ${verifiedClaim.verdict}`)
-        emit('claim_verified', verifiedClaim)
-
-        return verifiedClaim
-      })
-    )
+      console.log(`[pipeline] claim_verified [${i + 1}/${claims.length}] — veredicto: ${verifiedClaim.verdict}`)
+      emit('claim_verified', verifiedClaim)
+      verifiedClaims.push(verifiedClaim)
+    }
 
     // ── Paso 6: análisis completo ────────────────────────────────────────────
     console.log(`[pipeline] analysis_complete — ${verifiedClaims.length} claims verificados`)

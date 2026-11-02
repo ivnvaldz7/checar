@@ -5,12 +5,26 @@ const TTL_MS = 30_000 // tiempo máximo de espera para join_session
 const MAX_INPUT_CHARS = 8_000
 const ANALYSIS_WINDOW_MS = 15 * 60_000
 const DEFAULT_MAX_ANALYSES_PER_WINDOW = 10
+const DEFAULT_MAX_PENDING_PIPELINES = 50
+const DEFAULT_MAX_CONCURRENT_ANALYSES_PER_IP = 1
+
+function positiveInteger(value, fallback) {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
+}
+
 const rawLimit = Number(process.env.MAX_ANALYSES_PER_15_MIN)
 const MAX_ANALYSES_PER_WINDOW = Number.isInteger(rawLimit) && rawLimit > 0
   ? rawLimit
   : DEFAULT_MAX_ANALYSES_PER_WINDOW
+const MAX_PENDING_PIPELINES = positiveInteger(process.env.MAX_PENDING_PIPELINES, DEFAULT_MAX_PENDING_PIPELINES)
+const MAX_CONCURRENT_ANALYSES_PER_IP = positiveInteger(
+  process.env.MAX_CONCURRENT_ANALYSES_PER_IP,
+  DEFAULT_MAX_CONCURRENT_ANALYSES_PER_IP,
+)
 
 const requestsByAddress = new Map()
+const activePipelinesByAddress = new Map()
 
 export function isRateLimited(address, now) {
   const active = (requestsByAddress.get(address) || [])
@@ -32,6 +46,20 @@ export function isRateLimited(address, now) {
  */
 export const pendingPipelines = new Map()
 
+export function tryAcquirePipelineSlot(address) {
+  const active = activePipelinesByAddress.get(address) || 0
+  if (active >= MAX_CONCURRENT_ANALYSES_PER_IP) return false
+
+  activePipelinesByAddress.set(address, active + 1)
+  return true
+}
+
+export function releasePipelineSlot(address) {
+  const active = activePipelinesByAddress.get(address) || 0
+  if (active <= 1) activePipelinesByAddress.delete(address)
+  else activePipelinesByAddress.set(address, active - 1)
+}
+
 /**
  * Crea el router para POST /api/analyze.
  * Ya no llama a runPipeline() directamente — guarda el job en pendingPipelines
@@ -45,6 +73,12 @@ export function createAnalyzeRouter() {
     if (isRateLimited(address, Date.now())) {
       return res.status(429).json({
         error: 'Alcanzaste el límite temporal de análisis. Esperá unos minutos e intentá nuevamente.',
+      })
+    }
+
+    if (pendingPipelines.size >= MAX_PENDING_PIPELINES) {
+      return res.status(503).json({
+        error: 'El servicio está procesando muchas consultas. Esperá unos minutos e intentá nuevamente.',
       })
     }
 
@@ -78,7 +112,7 @@ export function createAnalyzeRouter() {
     const sessionId = randomUUID()
 
     // Guardar el job — el pipeline arranca cuando llega join_session
-    pendingPipelines.set(sessionId, { input: input.trim(), type })
+    pendingPipelines.set(sessionId, { input: input.trim(), type, address })
     console.log(`[analyze] job pendiente registrado — sessionId: ${sessionId}`)
 
     // TTL: si el cliente no hace join_session en 30s, limpiar la entrada

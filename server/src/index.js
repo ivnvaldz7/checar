@@ -3,7 +3,12 @@ import express from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
-import { createAnalyzeRouter, pendingPipelines } from './routes/analyze.js'
+import {
+  createAnalyzeRouter,
+  pendingPipelines,
+  releasePipelineSlot,
+  tryAcquirePipelineSlot,
+} from './routes/analyze.js'
 import { runPipeline } from './pipeline.js'
 import { ACTIVE_MODEL, AI_PROVIDER, validateAiConfiguration } from './services/aiConfig.js'
 
@@ -125,9 +130,19 @@ io.on('connection', (socket) => {
 
     // Consumir el job y arrancar el pipeline
     pendingPipelines.delete(sessionId)
-    runPipeline({ io, sessionId, input: job.input, type: job.type }).catch((err) => {
-      console.error('[socket] error no capturado en pipeline:', err)
-    })
+    if (!tryAcquirePipelineSlot(job.address)) {
+      socket.emit('analysis_error', {
+        message: 'Ya hay un análisis en curso desde esta conexión. Esperá a que termine e intentá nuevamente.',
+        step: 'rate_limit',
+      })
+      return
+    }
+
+    runPipeline({ io, sessionId, input: job.input, type: job.type })
+      .catch((err) => {
+        console.error('[socket] error no capturado en pipeline:', err)
+      })
+      .finally(() => releasePipelineSlot(job.address))
   })
 
   socket.on('disconnect', () => {

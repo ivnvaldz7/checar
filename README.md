@@ -73,7 +73,7 @@ cp server/.env.example server/.env
 
 El frontend usa `VITE_SERVER_URL=http://localhost:3001`. El backend requiere `GROQ_API_KEY`, usa `AI_PROVIDER=groq` y escucha en el puerto indicado por `PORT`. Creá la clave en [Groq Console](https://console.groq.com/keys) y guardala solo en tu archivo `.env` o en las variables de Render.
 
-La cuota gratuita no es un servicio garantizado: si se alcanza el límite, ChecAR informa el problema y la verificación de esa solicitud queda sin datos. Para protegerla, el backend limita por defecto a 10 análisis por IP cada 15 minutos (`MAX_ANALYSES_PER_15_MIN`). Para evitar resultados sin evidencia, las fuentes se muestran como enlaces en cada veredicto.
+La cuota gratuita no es un servicio garantizado: si se alcanza el límite, ChecAR informa el problema y la verificación de esa solicitud queda sin datos. Para protegerla, el backend limita por defecto a 10 análisis por IP cada 15 minutos (`MAX_ANALYSES_PER_15_MIN`), un análisis simultáneo por IP (`MAX_CONCURRENT_ANALYSES_PER_IP`) y 50 trabajos pendientes (`MAX_PENDING_PIPELINES`). Para evitar resultados sin evidencia, las fuentes se muestran como enlaces en cada veredicto.
 
 ### Deploy
 

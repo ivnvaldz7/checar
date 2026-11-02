@@ -1,6 +1,7 @@
 import fetch from 'node-fetch'
 import { JSDOM } from 'jsdom'
 import { Readability } from '@mozilla/readability'
+import { fetchPublicUrl } from './safeUrl.js'
 
 const MAX_CHARS = 8000
 
@@ -47,7 +48,8 @@ export async function extractArticle(input, type) {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 15_000)
 
-    const response = await fetch(input, {
+    const response = await fetchPublicUrl(input, {
+      fetchImpl: fetch,
       signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; ChecAR/1.0; +https://checar.ar)',
@@ -70,6 +72,11 @@ export async function extractArticle(input, type) {
     html = await response.text()
   } catch (err) {
     if (err.step) throw err
+    if (err.code === 'UNSAFE_URL') {
+      const e = new Error('La URL no puede apuntar a una red interna o dirección reservada.')
+      e.step = 'extraction'
+      throw e
+    }
     if (err.name === 'AbortError') {
       const e = new Error('El análisis tardó demasiado. Intentá de nuevo.')
       e.step = 'extraction'

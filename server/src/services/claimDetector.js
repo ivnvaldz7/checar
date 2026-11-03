@@ -18,12 +18,15 @@ const SCHEMA_EJEMPLO = JSON.stringify({
 const CLAIMS_RESPONSE_SCHEMA = {
   type: 'object',
   required: ['claims'],
+  additionalProperties: false,
   properties: {
     claims: {
       type: 'array',
+      maxItems: MAX_CLAIMS,
       items: {
         type: 'object',
         required: ['text', 'isNumerical'],
+        additionalProperties: false,
         properties: {
           text: { type: 'string' },
           isNumerical: { type: 'boolean' },
@@ -66,7 +69,11 @@ ${articleText}
   let raw
   try {
     if (AI_PROVIDER === 'groq') {
-      raw = await generateGroqJson({ prompt })
+      raw = await generateGroqJson({
+        prompt,
+        responseSchema: CLAIMS_RESPONSE_SCHEMA,
+        schemaName: 'checar_claims',
+      })
     } else {
       const model = genAI.getGenerativeModel({
         model: GEMINI_MODEL,

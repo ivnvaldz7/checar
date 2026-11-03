@@ -6,6 +6,7 @@ import { flushSync } from 'react-dom'
 const InputPage    = lazy(() => import('./pages/InputPage.jsx'))
 const AnalysisPage = lazy(() => import('./pages/AnalysisPage.jsx'))
 const BriefingPage = lazy(() => import('./pages/BriefingPage.jsx'))
+const PrivacyPage  = lazy(() => import('./pages/PrivacyPage.jsx'))
 
 // Fallback mínimo mientras carga el chunk de la página.
 function PageLoader() {
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="/"                      element={<InputPage />}    />
         <Route path="/analysis/:sessionId"   element={<AnalysisPage />} />
         <Route path="/briefing/:sessionId"   element={<BriefingPage />} />
+        <Route path="/privacidad"            element={<PrivacyPage />} />
       </Routes>
     </Suspense>
   )

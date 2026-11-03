@@ -36,6 +36,59 @@ test('pide JSON estructurado a Groq cuando no necesita búsqueda', async () => {
   }
 })
 
+test('usa JSON Schema estricto y reintenta una falla transitoria de generación', async () => {
+  const originalKey = process.env.GROQ_API_KEY
+  const originalFetch = globalThis.fetch
+  const requests = []
+
+  process.env.GROQ_API_KEY = 'gsk_test'
+  globalThis.fetch = async (_url, options) => {
+    requests.push(JSON.parse(options.body))
+    if (requests.length === 1) {
+      return new Response(JSON.stringify({
+        error: { message: 'Failed to generate JSON. Please adjust your prompt.' },
+      }), { status: 400, headers: { 'Content-Type': 'application/json' } })
+    }
+
+    return new Response(JSON.stringify({
+      choices: [{ message: { content: '{"claims":[]}' } }],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  }
+
+  try {
+    const raw = await generateGroqJson({
+      prompt: 'Respondé JSON.',
+      schemaName: 'claims',
+      responseSchema: {
+        type: 'object',
+        properties: { claims: { type: 'array', items: { type: 'string' } } },
+        required: ['claims'],
+        additionalProperties: false,
+      },
+    })
+
+    assert.equal(raw, '{"claims":[]}')
+    assert.equal(requests.length, 2)
+    assert.deepEqual(requests[0].response_format, {
+      type: 'json_schema',
+      json_schema: {
+        name: 'claims',
+        strict: true,
+        schema: {
+          type: 'object',
+          properties: { claims: { type: 'array', items: { type: 'string' } } },
+          required: ['claims'],
+          additionalProperties: false,
+        },
+      },
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+    if (originalKey === undefined) delete process.env.GROQ_API_KEY
+    else process.env.GROQ_API_KEY = originalKey
+  }
+})
+
 test('usa Browser Search sin structured output al investigar una afirmación', async () => {
   const originalKey = process.env.GROQ_API_KEY
   const originalFetch = globalThis.fetch

@@ -1,0 +1,25 @@
+name: ChecAR availability
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  healthcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check backend health
+        run: >-
+          curl --fail --silent --show-error --location
+          --connect-timeout 15 --max-time 90 --retry 2 --retry-all-errors --retry-delay 10
+          https://checar-by3k.onrender.com/health
+      - name: Check frontend availability
+        run: >-
+          curl --fail --silent --show-error --location
+          --connect-timeout 15 --max-time 30 --retry 2 --retry-all-errors --retry-delay 5
+          https://checar-v2.vercel.app/

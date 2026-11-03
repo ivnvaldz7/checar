@@ -40,11 +40,28 @@ function makeApiError(status, payload) {
   return error
 }
 
+function shouldRetryJsonGeneration(error) {
+  return error.status === 400 && /failed to generate json/i.test(error.message)
+}
+
+function createResponseFormat(responseSchema, schemaName) {
+  if (!responseSchema) return { type: 'json_object' }
+
+  return {
+    type: 'json_schema',
+    json_schema: {
+      name: schemaName || 'checar_response',
+      strict: true,
+      schema: responseSchema,
+    },
+  }
+}
+
 /**
  * Solicita a Groq una respuesta JSON. Browser Search no admite structured
  * outputs; por eso para búsquedas se exige JSON en el prompt y se parsea luego.
  */
-export async function generateGroqJson({ prompt, search = false }) {
+export async function generateGroqJson({ prompt, search = false, responseSchema, schemaName }) {
   const apiKey = process.env.GROQ_API_KEY?.trim()
   if (!apiKey) {
     const error = new Error('GROQ_API_KEY no está configurada.')
@@ -65,38 +82,48 @@ export async function generateGroqJson({ prompt, search = false }) {
           tool_choice: 'required',
           tools: [{ type: 'browser_search' }],
         }
-      : { response_format: { type: 'json_object' } }),
+      : { response_format: createResponseFormat(responseSchema, schemaName) }),
   }
 
-  let response
-  try {
-    response = await fetch(GROQ_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    })
-  } catch (cause) {
-    const error = new Error('No se pudo conectar con Groq.')
-    error.cause = cause
-    throw error
+  // En ocasiones el modelo no logra serializar una respuesta aunque el pedido
+  // sea válido. Reintentamos solo ese 400 y una sola vez para no gastar cuota.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    let response
+    try {
+      response = await fetch(GROQ_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
+    } catch (cause) {
+      const error = new Error('No se pudo conectar con Groq.')
+      error.cause = cause
+      throw error
+    }
+
+    let payload
+    try {
+      payload = await response.json()
+    } catch {
+      throw makeApiError(response.status, null)
+    }
+
+    if (!response.ok) {
+      const error = makeApiError(response.status, payload)
+      if (!search && attempt === 0 && shouldRetryJsonGeneration(error)) continue
+      throw error
+    }
+
+    const content = payload?.choices?.[0]?.message?.content
+    if (typeof content !== 'string' || content.trim().length === 0) {
+      throw new Error('Groq devolvió una respuesta vacía.')
+    }
+
+    return content
   }
 
-  let payload
-  try {
-    payload = await response.json()
-  } catch {
-    throw makeApiError(response.status, null)
-  }
-
-  if (!response.ok) throw makeApiError(response.status, payload)
-
-  const content = payload?.choices?.[0]?.message?.content
-  if (typeof content !== 'string' || content.trim().length === 0) {
-    throw new Error('Groq devolvió una respuesta vacía.')
-  }
-
-  return content
+  throw new Error('Groq no devolvió una respuesta utilizable.')
 }

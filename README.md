@@ -13,7 +13,7 @@ No es un detector de fake news. Es un asistente para periodistas e investigadore
 - Acepta URLs de artículos o texto pegado directamente
 - Emite el contenido del artículo progresivamente mientras analiza
 - Detecta hasta 3 afirmaciones verificables por nota (límite pensado para la cuota gratuita)
-- Verifica cada claim contra fuentes oficiales argentinas (INDEC, InfoLeg, Chequeado, Boletín Oficial)
+- Verifica cada claim contra fuentes oficiales argentinas y de chequeo habilitadas
 - Agrega contexto histórico a claims con datos numéricos (evolución de los últimos 12 meses)
 - Presenta un briefing final copiable
 
@@ -48,6 +48,16 @@ La decisión también cambia el usuario objetivo. Un periodista que verifica dat
 | InfoLeg | https://www.infoleg.gob.ar |
 | Chequeado | https://chequeado.com |
 | Boletín Oficial | https://www.boletinoficial.gob.ar |
+| BCRA | https://www.bcra.gob.ar |
+| Congreso | https://www.congreso.gob.ar |
+| ARCA | https://www.arca.gob.ar |
+| Cámara Nacional Electoral | https://www.electoral.gob.ar |
+| Oficina de Presupuesto del Congreso | https://opc.gob.ar |
+| Datos Argentina | https://datos.gob.ar |
+| ANSES | https://www.anses.gob.ar |
+| Corte Suprema de Justicia | https://www.csjn.gov.ar |
+| Ministerio Público Fiscal | https://www.mpf.gob.ar |
+| Auditoría General de la Nación | https://www.agn.gob.ar |
 | Memoria Abierta | https://memoriaabierta.org.ar |
 
 ChecAR solo conserva un veredicto distinto de `sin_datos` cuando la respuesta incluye una fuente de esta lista o de otro organismo público argentino habilitado (por ejemplo, BCRA o Congreso).
